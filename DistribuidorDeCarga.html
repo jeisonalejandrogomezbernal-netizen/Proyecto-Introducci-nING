@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Balanceador de Carga - Jeison Gomez</title>
+    <style>
+   
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            color: #333;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        h1 { color: #2c3e50; }
+        .subtitle { color: #7f8c8d; margin-bottom: 30px; }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .btn-enviar {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: background 0.2s;
+        }
+        .btn-enviar:hover { background-color: #2980b9; }
+
+        .servidores-container {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+        }
+
+        .servidor {
+            width: 30%;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid #2ecc71;
+            background-color: #e8f8f5;
+            transition: all 0.3s ease;
+        }
+        
+        .servidor.caido {
+            border-color: #e74c3c;
+            background-color: #fdedec;
+            opacity: 0.6;
+        }
+
+        .servidor.recibiendo {
+            background-color: #abebc6;
+            transform: scale(1.05);
+        }
+
+        .contador {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 15px 0;
+            color: #2c3e50;
+        }
+
+        .btn-estado {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        
+        .btn-estado.encender {
+            background-color: #2ecc71;
+        }
+
+        .log {
+            margin-top: 30px;
+            padding: 10px;
+            background: #2c3e50;
+            color: #ecf0f1;
+            border-radius: 5px;
+            font-family: monospace;
+            text-align: left;
+            height: 100px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Sistema de Distribución de Carga</h1>
+        <p class="subtitle">Algoritmo: Round Robin | Presentado por: Jeison Alejandro Gomez Bernal</p>
+
+        <button class="btn-enviar" onclick="enviarPeticion()">+ Enviar Petición (Usuario)</button>
+
+        <div class="servidores-container">
+            <!-- Servidor 1 -->
+            <div class="servidor" id="srv-0">
+                <h3>Servidor A</h3>
+                <p>Peticiones Atendidas:</p>
+                <div class="contador" id="count-0">0</div>
+                <p id="estado-txt-0" style="color: #2ecc71; font-weight: bold;">En línea</p>
+                <button class="btn-estado" id="btn-0" onclick="cambiarEstado(0)">Simular Caída</button>
+            </div>
+
+            <!-- Servidor 2 -->
+            <div class="servidor" id="srv-1">
+                <h3>Servidor B</h3>
+                <p>Peticiones Atendidas:</p>
+                <div class="contador" id="count-1">0</div>
+                <p id="estado-txt-1" style="color: #2ecc71; font-weight: bold;">En línea</p>
+                <button class="btn-estado" id="btn-1" onclick="cambiarEstado(1)">Simular Caída</button>
+            </div>
+
+            <!-- Servidor 3 -->
+            <div class="servidor" id="srv-2">
+                <h3>Servidor C</h3>
+                <p>Peticiones Atendidas:</p>
+                <div class="contador" id="count-2">0</div>
+                <p id="estado-txt-2" style="color: #2ecc71; font-weight: bold;">En línea</p>
+                <button class="btn-estado" id="btn-2" onclick="cambiarEstado(2)">Simular Caída</button>
+            </div>
+        </div>
+
+        <div class="log" id="consola">
+            > Sistema iniciado. Esperando peticiones...<br>
+        </div>
+    </div>
+
+    <script>
+        let servidores = [
+            { nombre: "Servidor A", activo: true, peticiones: 0 },
+            { nombre: "Servidor B", activo: true, peticiones: 0 },
+            { nombre: "Servidor C", activo: true, peticiones: 0 }
+        ];
+        
+        let turnoActual = 0;
+        let totalPeticiones = 0;
+
+        function enviarPeticion() {
+            totalPeticiones++;
+            let servidorAsignado = null;
+            let intentos = 0;
+
+        
+            while (intentos < servidores.length) {
+                let servidorCandidato = servidores[turnoActual];
+                
+          
+                turnoActual = (turnoActual + 1) % servidores.length;
+
+                if (servidorCandidato.activo) {
+                    servidorAsignado = servidorCandidato;
+       
+                    servidorAsignado.idReal = (turnoActual - 1 + servidores.length) % servidores.length;
+                    break;
+                }
+                intentos++;
+            }
+
+            if (servidorAsignado) {
+                servidorAsignado.peticiones++;
+                let id = servidorAsignado.idReal;
+                
+                // Actualizar número
+                document.getElementById('count-' + id).innerText = servidorAsignado.peticiones;
+                
+ 
+                let cajaServidor = document.getElementById('srv-' + id);
+                cajaServidor.classList.add('recibiendo');
+                setTimeout(() => {
+                    cajaServidor.classList.remove('recibiendo');
+                }, 300);
+
+                escribirLog("Petición #" + totalPeticiones + " -> Redirigida a " + servidorAsignado.nombre);
+            } else {
+                escribirLog("ERROR CRÍTICO: Petición #" + totalPeticiones + " falló. Todos los servidores están caídos.");
+                alert("¡El sistema colapsó! No hay servidores disponibles.");
+            }
+        }
+
+        function cambiarEstado(id) {
+            let servidor = servidores[id];
+            servidor.activo = !servidor.activo;
+
+            let caja = document.getElementById('srv-' + id);
+            let boton = document.getElementById('btn-' + id);
+            let texto = document.getElementById('estado-txt-' + id);
+
+            if (servidor.activo) {
+                caja.classList.remove('caido');
+                boton.innerText = "Simular Caída";
+                boton.classList.remove('encender');
+                texto.innerText = "En línea";
+                texto.style.color = "#2ecc71";
+                escribirLog("ALERTA: " + servidor.nombre + " ha sido reparado y vuelve a estar en línea.");
+            } else {
+                caja.classList.add('caido');
+                boton.innerText = "Encender";
+                boton.classList.add('encender');
+                texto.innerText = "CAÍDO";
+                texto.style.color = "#e74c3c";
+                escribirLog("ALERTA: " + servidor.nombre + " ha fallado (Hardware).");
+            }
+        }
+        function escribirLog(mensaje) {
+            let consola = document.getElementById('consola');
+            consola.innerHTML += "> " + mensaje + "<br>";
+            consola.scrollTop = consola.scrollHeight; // Auto-scroll hacia abajo
+        }
+    </script>
+</body>
+</html>
+
